@@ -181,6 +181,31 @@ async function run() {
       res.json(result);
     });
 
+    app.get("/my-interests/:email", async (req, res) => {
+      const email = req.params.email;
+
+      const crops = await cropsCollection
+        .find({ "interests.userEmail": email })
+        .toArray();
+
+      const userInterests = [];
+
+      crops.forEach((crop) => {
+        crop.interests.forEach((interest) => {
+          if (interest.userEmail === email) {
+            userInterests.push({
+              ...interest,
+              cropName: crop.name,
+              ownerName: crop.owner.ownerName,
+              ownerEmail: crop.owner.ownerEmail,
+            });
+          }
+        });
+      });
+
+      res.json(userInterests);
+    });
+
     app.listen(port, () => {
       console.log(`KrishiLink Server is running on port ${port}`);
     });
