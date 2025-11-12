@@ -206,6 +206,35 @@ async function run() {
       res.json(userInterests);
     });
 
+    app.put("/interests/update", async (req, res) => {
+      const { interestId, cropId, status } = req.body;
+
+      const result = await cropsCollection.updateOne(
+        {
+          _id: new ObjectId(cropId),
+          "interests._id": new ObjectId(interestId),
+        },
+        { $set: { "interests.$.status": status } }
+      );
+
+      if (status === "accepted") {
+        const crop = await cropsCollection.findOne({
+          _id: new ObjectId(cropId),
+        });
+
+        const acceptedInterest = crop.interests.find(
+          (interest) => interest._id.toString() === interestId
+        );
+
+        await cropsCollection.updateOne(
+          { _id: new ObjectId(cropId) },
+          { $inc: { quantity: -acceptedInterest.quantity } }
+        );
+      }
+
+      res.json(result);
+    });
+
     app.listen(port, () => {
       console.log(`KrishiLink Server is running on port ${port}`);
     });
