@@ -123,6 +123,43 @@ async function run() {
       res.json(crops);
     });
 
+    app.put("/crops/:id", async (req, res) => {
+      const id = req.params.id;
+      const {
+        name,
+        type,
+        pricePerUnit,
+        unit,
+        quantity,
+        description,
+        location,
+        image,
+      } = req.body;
+
+      const result = await cropsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            name,
+            type,
+            pricePerUnit,
+            unit,
+            quantity,
+            description,
+            location,
+            image,
+          },
+        }
+      );
+      res.json(result);
+    });
+
+    app.delete("/crops/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await cropsCollection.deleteOne({ _id: new ObjectId(id) });
+      res.json(result);
+    });
+
     app.listen(port, () => {
       console.log(`KrishiLink Server is running on port ${port}`);
     });
