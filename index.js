@@ -32,9 +32,15 @@ async function connectDB() {
       db = client.db(process.env.DB_NAME);
       cropsCollection = db.collection("crops");
       usersCollection = db.collection("users");
+      console.log("Collections initialized:", {
+        crops: !!cropsCollection,
+        users: !!usersCollection,
+      });
     }
+    return true;
   } catch (error) {
     console.error("MongoDB connection error:", error);
+    throw error;
   }
 }
 
@@ -65,14 +71,26 @@ app.get("/health", async (req, res) => {
 app.post("/users", async (req, res) => {
   try {
     await connectDB();
-    const { name, email, photoURL } = req.body;
+    if (!usersCollection) {
+      throw new Error("Database not initialized");
+    }
+    const { name, email, photoURL, createdAt } = req.body;
     const existingUser = await usersCollection.findOne({ email: email });
     if (existingUser) {
-      return res.json({ message: "User already exists" });
+      return res.json({
+        message: "User already exists",
+        insertedId: existingUser._id,
+      });
     }
-    const result = await usersCollection.insertOne({ name, email, photoURL });
+    const result = await usersCollection.insertOne({
+      name,
+      email,
+      photoURL,
+      createdAt: createdAt || new Date().toISOString(),
+    });
     res.json(result);
   } catch (error) {
+    console.error("Error in /users:", error);
     res.status(500).json({ error: error.message });
   }
 });
