@@ -160,6 +160,27 @@ async function run() {
       res.json(result);
     });
 
+    app.post("/interests", async (req, res) => {
+      const { cropId, userEmail, userName, quantity, message, status } =
+        req.body;
+
+      const newInterest = {
+        _id: new ObjectId(),
+        cropId,
+        userEmail,
+        userName,
+        quantity,
+        message,
+        status,
+      };
+
+      const result = await cropsCollection.updateOne(
+        { _id: new ObjectId(cropId) },
+        { $push: { interests: newInterest } }
+      );
+      res.json(result);
+    });
+
     app.listen(port, () => {
       console.log(`KrishiLink Server is running on port ${port}`);
     });
