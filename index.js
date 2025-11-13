@@ -9,7 +9,11 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.uwxcdte.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const uri = `mongodb+srv://${encodeURIComponent(
+  process.env.DB_USER
+)}:${encodeURIComponent(
+  process.env.DB_PASS
+)}@cluster0.uwxcdte.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -17,6 +21,8 @@ const client = new MongoClient(uri, {
     strict: true,
     deprecationErrors: true,
   },
+  connectTimeoutMS: 10000,
+  socketTimeoutMS: 45000,
 });
 
 let db;
@@ -26,8 +32,8 @@ let usersCollection;
 async function connectDB() {
   try {
     if (!db) {
-      await client.connect();
-      await client.db("admin").command({ ping: 1 });
+      //await client.connect();
+      //await client.db("admin").command({ ping: 1 });
       console.log("Successfully connected to MongoDB!");
       db = client.db(process.env.DB_NAME);
       cropsCollection = db.collection("crops");
