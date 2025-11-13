@@ -101,10 +101,55 @@ app.post("/users", async (req, res) => {
   }
 });
 
+app.get("/users/:email", async (req, res) => {
+  try {
+    await connectDB();
+    const email = req.params.email;
+    const user = await usersCollection.findOne({ email: email });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put("/users/:email", async (req, res) => {
+  try {
+    await connectDB();
+    const email = req.params.email;
+    const { name, photoURL } = req.body;
+    const result = await usersCollection.updateOne(
+      { email: email },
+      { $set: { name, photoURL } }
+    );
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get("/crops", async (req, res) => {
   try {
     await connectDB();
     const crops = await cropsCollection.find().toArray();
+    res.json(crops);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/crops/search", async (req, res) => {
+  try {
+    await connectDB();
+    const searchQuery = req.query.q || "";
+    const crops = await cropsCollection
+      .find({
+        $or: [
+          { name: { $regex: searchQuery, $options: "i" } },
+          { type: { $regex: searchQuery, $options: "i" } },
+          { location: { $regex: searchQuery, $options: "i" } },
+        ],
+      })
+      .toArray();
     res.json(crops);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -131,6 +176,17 @@ app.get("/crops/:id", async (req, res) => {
     const id = req.params.id;
     const crop = await cropsCollection.findOne({ _id: new ObjectId(id) });
     res.json(crop);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/crops/:id/interests", async (req, res) => {
+  try {
+    await connectDB();
+    const id = req.params.id;
+    const crop = await cropsCollection.findOne({ _id: new ObjectId(id) });
+    res.json(crop?.interests || []);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -271,6 +327,37 @@ app.get("/my-interests/:email", async (req, res) => {
         }
       });
     });
+    res.json(userInterests);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/my-interests/:email/sorted", async (req, res) => {
+  try {
+    await connectDB();
+    const email = req.params.email;
+    const sortBy = req.query.sortBy || "status";
+    const crops = await cropsCollection
+      .find({ "interests.userEmail": email })
+      .toArray();
+    const userInterests = [];
+    crops.forEach((crop) => {
+      crop.interests.forEach((interest) => {
+        if (interest.userEmail === email) {
+          userInterests.push({
+            ...interest,
+            cropId: crop._id,
+            cropName: crop.name,
+            ownerName: crop.owner.ownerName,
+            ownerEmail: crop.owner.ownerEmail,
+          });
+        }
+      });
+    });
+    if (sortBy === "status") {
+      userInterests.sort((a, b) => a.status.localeCompare(b.status));
+    }
     res.json(userInterests);
   } catch (error) {
     res.status(500).json({ error: error.message });
